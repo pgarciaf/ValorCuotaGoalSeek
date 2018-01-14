@@ -8,40 +8,42 @@ namespace ValorCuota
 {
     public class Calculo
     {
+        private const int factorRedondeo = 7;
         
-        public static void SeekGoal()
+        public static void SeekGoal(string lsFechaOtorgamiento, string lsmontoLiquido, string lsmontoImpuesto, string lsmontoNotario, string lstasaInteres, string lsnumeroCuotas)
         {
             Credito loCredito = new Credito
             {
-                fechaOtorgamiento = new DateTime(2017, 8, 21),
+                fechaOtorgamiento = DateTime.Parse(lsFechaOtorgamiento),
                 mesesGracia = 1,
-                montoLiquido = 800000,
-                montoImpuesto = 6460,
-                montoNotario = 1000,
-                tasaInteres = (1.35 / 100),
-                numeroCuotas = 14
+                montoLiquido = int.Parse(lsmontoLiquido),
+                montoImpuesto = int.Parse(lsmontoImpuesto),
+                montoNotario = int.Parse(lsmontoNotario),
+                tasaInteres = (double.Parse(lstasaInteres) / 100),
+                numeroCuotas = int.Parse(lsnumeroCuotas)
 
             };
 
-            //loCredito.montoTotalCredito = (int)(loCredito.montoBruto + (loCredito.tasaInteres * loCredito.montoBruto));
-
-            loCredito.lstCupones.AddFirst(new Cupon { periodo = 1, dias = 60, fechaPago = new DateTime(2017, 10, 20), tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 2, dias = 31, fechaPago = new DateTime(2017, 11, 20) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 3, dias = 30, fechaPago = new DateTime(2017, 12, 20) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 4, dias = 33, fechaPago = new DateTime(2018, 01, 22) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 5, dias = 29, fechaPago = new DateTime(2018, 02, 20) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 6, dias = 28, fechaPago = new DateTime(2018, 03, 20) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 7, dias = 31, fechaPago = new DateTime(2018, 04, 20) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 8, dias = 31, fechaPago = new DateTime(2018, 05, 21) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 9, dias = 30, fechaPago = new DateTime(2018, 06, 20) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 10, dias = 30, fechaPago = new DateTime(2018, 07, 20) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 11, dias = 31, fechaPago = new DateTime(2018, 08, 20) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 12, dias = 31, fechaPago = new DateTime(2018, 09, 20) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 13, dias = 32, fechaPago = new DateTime(2018, 10, 22) , tasaInteresCredito = loCredito.tasaInteres });
-            loCredito.lstCupones.AddLast(new Cupon { periodo = 14, dias = 29, fechaPago = new DateTime(2018, 11, 20) , tasaInteresCredito = loCredito.tasaInteres });
+            GenerarFechasPago(loCredito);
 
             Console.WriteLine(string.Format("fechaOtorgamiento: {0} | montoTotal: {1} | tasaInteres: {2}", loCredito.fechaOtorgamiento.ToShortDateString(), loCredito.montoBruto, loCredito.tasaInteres));
 
+            GoalSeek(loCredito);
+            Console.WriteLine();
+            Console.WriteLine();
+
+            var loCurrentNode = loCredito.lstCupones.First;
+            while ((loCurrentNode != null)) //&& (currentNode.Value != desiredValue))
+            {
+                Console.WriteLine(string.Format("periodo: {0} | fechaPago: {1} | tasaInteres: {2} | montoInteres: {3} | cuota: {4} | Amort: {5} | montoAdeudado: {6}", loCurrentNode.Value.periodo, loCurrentNode.Value.fechaPago.ToShortDateString(), loCurrentNode.Value.tasaInteres, Math.Ceiling(loCurrentNode.Value.montoInteres), Math.Ceiling(loCurrentNode.Value.montoCuota), Math.Ceiling(loCurrentNode.Value.montoAmortizacion), Math.Ceiling(loCurrentNode.Value.montoCapitalAdeudado)));
+                loCurrentNode = loCurrentNode.Next;
+            }
+
+
+        }
+
+        private static void GoalSeek(Credito loCredito)
+        {
             var loReiniciar = false;
             var currentNode = loCredito.lstCupones.First;
             var loTasaInteresAprox = loCredito.tasaInteres;
@@ -70,9 +72,9 @@ namespace ValorCuota
                 }
 
                 // pregunto si es el ultimo
-                if(currentNode.Next == null)
+                if (currentNode.Next == null)
                 {
-                    if (Math.Round(currentNode.Value.montoCapitalAdeudado, 9) == 0)
+                    if (Math.Round(currentNode.Value.montoCapitalAdeudado, factorRedondeo) == 0)
                         break;
                     else
                     {
@@ -97,18 +99,55 @@ namespace ValorCuota
                     }
                 }
 
-                if(!loReiniciar)
+                if (!loReiniciar)
                     currentNode = currentNode.Next;
             }
+        }
 
-            var loCurrentNode = loCredito.lstCupones.First;
-            while ((loCurrentNode != null)) //&& (currentNode.Value != desiredValue))
+        private static void GenerarFechasPago(Credito loCredito)
+        {
+            for (int i = 0; i < loCredito.numeroCuotas; i++)
             {
-                Console.WriteLine(string.Format("periodo: {0} | tasaInteres: {1} | montoInteres: {2} | cuota: {3} | Amort: {4} | montoAdeudado: {5}", loCurrentNode.Value.periodo, loCurrentNode.Value.tasaInteres, (int)loCurrentNode.Value.montoInteres, (int)loCurrentNode.Value.montoCuota, (int)loCurrentNode.Value.montoAmortizacion, (int)loCurrentNode.Value.montoCapitalAdeudado));
-                loCurrentNode = loCurrentNode.Next;
+                int dias = 0;
+                DateTime fechaPago = DateTime.MaxValue;
+
+                if (i == 0)
+                {
+                    fechaPago = loCredito.fechaOtorgamiento.AddMonths(loCredito.mesesGracia);
+                    var diaPago = fechaPago.Day;
+                    while (diaPago != 20)
+                    {
+                        fechaPago = fechaPago.AddDays(1);
+                        diaPago = fechaPago.Day;
+                    }
+
+                    fechaPago = fechaHabilSiguiente(fechaPago);
+
+                    dias = (int)(fechaPago - loCredito.fechaOtorgamiento).TotalDays;
+                    loCredito.lstCupones.AddFirst(new Cupon { periodo = i + 1, dias = dias, fechaPago = fechaPago, tasaInteresCredito = loCredito.tasaInteres });
+                }
+                else
+                {
+                    DateTime fechaPagoAnt = loCredito.lstCupones.Last.Value.fechaPago;
+                    fechaPago = fechaPagoAnt.AddDays(30);
+                    var diaPago = fechaPago.Day;
+                    while (fechaPago.Day != 20)
+                        fechaPago = fechaPago.AddDays((diaPago < 20 ? +1 : -1));
+
+                    fechaPago = fechaHabilSiguiente(fechaPago);
+                    dias = (int)(fechaPago - fechaPagoAnt).TotalDays;
+                    loCredito.lstCupones.AddLast(new Cupon { periodo = i + 1, dias = dias, fechaPago = fechaPago, tasaInteresCredito = loCredito.tasaInteres });
+                }
+
             }
+        }
 
+        private static DateTime fechaHabilSiguiente(DateTime ldFecha)
+        {
+            while (ldFecha.DayOfWeek == DayOfWeek.Saturday || ldFecha.DayOfWeek == DayOfWeek.Sunday)
+                ldFecha = ldFecha.AddDays(1);
 
+            return ldFecha;
         }
     }
 }
